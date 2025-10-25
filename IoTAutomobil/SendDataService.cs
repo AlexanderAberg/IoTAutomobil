@@ -8,10 +8,10 @@ namespace IoTAutomobil
 {
     internal class SendDataService
     {
-        internal void SendData(SensorData sensorData)
+        internal Task SendDataAsync(SensorData sensorData)
         {
             var thingSpeak = new ThingSpeak();
-            thingSpeak.SendData(sensorData);
+            return thingSpeak.SendDataAsync(sensorData);
         }
     }
 }
