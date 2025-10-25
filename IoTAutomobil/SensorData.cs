@@ -8,7 +8,7 @@ namespace IoTAutomobil
 {
     internal class SensorData
     {
-        public SensorData(int rpm, int speed, int fuel, int engineTemperature, string dtc) 
+        public SensorData(int rpm, int speed, double fuel, int engineTemperature, string dtc) 
         {
             Rpm = rpm;
             Speed = speed;
@@ -18,7 +18,7 @@ namespace IoTAutomobil
         }
         public int Rpm { get; set; }
         public int Speed { get; set; }
-        public int Fuel { get; set; }
+        public double Fuel { get; set; }
         public int EngineTemperature { get; set; }
         public string Dtc { get; set; }
     }
