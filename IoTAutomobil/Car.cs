@@ -11,11 +11,12 @@ namespace IoTAutomobil
         private const int MaxRpm = 6000;
         private const int MinSpeed = 0;
         private const int MaxSpeed = 120;
-        private const int UpdateIntervalSeconds = 10;
+        private const int UpdateIntervalSeconds = 15;
         private const int TripDurationMinutes = 10;
 
         private const double DtcProbabilityPerTick = 0.05;
         private static readonly TimeSpan DtcDuration = TimeSpan.FromMinutes(2);
+        private const int DtcCooldownMinutes = 1;
 
         private const double EngineTempMin = 80.0;
         private const double EngineTempMax = 100.0;
@@ -41,6 +42,7 @@ namespace IoTAutomobil
         private readonly IDtcInfoProvider _dtcInfo;
 
         private string? _activeDtc = null;
+        private DateTime _nextDtcAllowedAt;
         private DateTime _activeDtcClearAt = DateTime.MinValue;
         private DateTime _plannedDtcAt = DateTime.MaxValue;
         private DateTime _simulationStart;
@@ -210,7 +212,12 @@ namespace IoTAutomobil
 
                 Console.WriteLine($"DTC cleared: {_activeDtc}");
                 _activeDtc = null;
+
+                _nextDtcAllowedAt = now.AddMinutes(DtcCooldownMinutes);
+                return string.Empty;
             }
+
+            if (now < _nextDtcAllowedAt) return string.Empty;
 
             if (_activeDtc is null && now >= _plannedDtcAt)
             {
@@ -220,6 +227,7 @@ namespace IoTAutomobil
                 return _activeDtc;
             }
 
+            // Random DTC
             if (_activeDtc is null && _random.NextDouble() < DtcProbabilityPerTick)
             {
                 _activeDtc = PickRandomDtc();
