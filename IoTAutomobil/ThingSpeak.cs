@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Globalization;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace IoTAutomobil
@@ -22,20 +24,29 @@ namespace IoTAutomobil
                 return;
             }
 
-            var uri = new UriBuilder("https://api.thingspeak.com/update")
-            {
-                Query =
-                    $"api_key={Uri.EscapeDataString(_apiKey)}" +
-                    $"&field1={sensorData.Rpm}" +
-                    $"&field2={sensorData.Speed}" +
-                    $"&field3={sensorData.Fuel}" +
-                    $"&field4={sensorData.EngineTemperature}" +
-                    $"&field5={Uri.EscapeDataString(sensorData.Dtc ?? string.Empty)}"
-            }.Uri;
+            bool hasDtc = !string.IsNullOrWhiteSpace(sensorData.Dtc);
+
+            var sb = new StringBuilder();
+            sb.Append("api_key=").Append(Uri.EscapeDataString(_apiKey));
+            sb.Append("&field1=").Append(sensorData.Rpm);
+            sb.Append("&field2=").Append(sensorData.Speed);
+            sb.Append("&field3=").Append(sensorData.Fuel.ToString(CultureInfo.InvariantCulture));
+            sb.Append("&field4=").Append(sensorData.EngineTemperature);
+
+            if (hasDtc)
+                sb.Append("&field5=").Append(Uri.EscapeDataString(sensorData.Dtc));
+
+            sb.Append("&field6=").Append(hasDtc ? "1" : "0");
+
+            sb.Append("&status=").Append(Uri.EscapeDataString(hasDtc ? $"DTC: {sensorData.Dtc}" : "OK"));
+
+            var query = sb.ToString();
+            var uri = new UriBuilder("https://api.thingspeak.com/update") { Query = query }.Uri;
 
             try
             {
-                var resp = await s_http.GetStringAsync(uri);
+                Console.WriteLine($"ThingSpeak request: {query.Replace(_apiKey, "****")}");
+                var resp = await s_http.GetStringAsync(uri).ConfigureAwait(false);
                 Console.WriteLine($"ThingSpeak update response: {resp}");
             }
             catch (Exception ex)
