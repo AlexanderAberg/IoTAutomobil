@@ -78,8 +78,6 @@ namespace IoTAutomobil
         }
     }
 
-    // ---- DTC info (description/link) providers ----
-
     internal sealed class DtcInfo
     {
         public string Code { get; }
@@ -270,8 +268,6 @@ namespace IoTAutomobil
         }
     }
 
-    // ... keep all existing using directives and other classes above ...
-
     internal sealed class WebDtcInfoProvider : IDtcInfoProvider
     {
         private readonly string _listUrl;
@@ -280,7 +276,7 @@ namespace IoTAutomobil
         private readonly string _codeCacheDir;
         private readonly TimeSpan _cacheMaxAge;
 
-        private static volatile bool s_webBlocked; // set after first 403/401
+        private static volatile bool s_webBlocked;
         private readonly bool _debug =
             string.Equals(Environment.GetEnvironmentVariable("DTC_INFO_DEBUG"), "1", StringComparison.OrdinalIgnoreCase);
         private readonly bool _disabled =
@@ -300,9 +296,7 @@ namespace IoTAutomobil
                 ? codePageTemplates
                 : new[]
                 {
-                    "https://club.autodoc.se/obd-codes/{code}",
-                    "https://club.autodoc.se/obd-code/{code}",
-                    "https://club.autodoc.se/koder/{code}"
+                    "https://club.autodoc.se/obd-codes/{code}"
                 };
             _codeCacheDir = codeCacheDir ?? Path.Combine(Path.GetDirectoryName(listCachePath) ?? ".", "dtc-cache");
         }
@@ -319,7 +313,6 @@ namespace IoTAutomobil
 
             var up = code.ToUpperInvariant();
 
-            // A) Discover per-code link from list anchors
             var listHtml = LoadHtml(_listUrl, _listCachePath, _cacheMaxAge, referer: null, out var listFromCache);
             if (_debug) LogHtmlStats("list", _listCachePath, listHtml, up);
             if (!s_webBlocked)
@@ -339,7 +332,6 @@ namespace IoTAutomobil
                 }
             }
 
-            // B) Try known per-code URL templates (lower/upper)
             if (!s_webBlocked)
             {
                 foreach (var tpl in _codePageTemplates)
@@ -361,7 +353,6 @@ namespace IoTAutomobil
                 }
             }
 
-            // C) Fallback: try to extract from the list page itself
             var listDesc = TryExtractFromList(listHtml, up);
             if (!string.IsNullOrWhiteSpace(listDesc))
             {
@@ -386,7 +377,6 @@ namespace IoTAutomobil
             catch { }
         }
 
-        // NOTE: this LoadHtml short-circuits on 403/401 and avoids caching error bodies
         private static string LoadHtml(string url, string cachePath, TimeSpan cacheMaxAge, string? referer, out bool fromCache)
         {
             fromCache = false;
@@ -413,7 +403,7 @@ namespace IoTAutomobil
 
                 if (resp.StatusCode == HttpStatusCode.Forbidden || resp.StatusCode == HttpStatusCode.Unauthorized)
                 {
-                    s_webBlocked = true; // stop future attempts this run
+                    s_webBlocked = true;
                     return string.Empty;
                 }
 
@@ -423,7 +413,6 @@ namespace IoTAutomobil
                     return content;
                 }
 
-                // Not success: try existing cache if any, else empty
                 if (File.Exists(cachePath))
                 {
                     fromCache = true;
@@ -459,7 +448,6 @@ namespace IoTAutomobil
 
             try
             {
-                // Find anchors where inner text contains the code (clickable code)
                 var aRx = new Regex(@"<a\s+(?:[^>]*?)href\s*=\s*(?:""(?<href>[^""]+)""|'(?<href>[^']+)')[^>]*>(?<text>.*?)</a>",
                     RegexOptions.IgnoreCase | RegexOptions.Singleline);
                 foreach (Match m in aRx.Matches(listHtml))
@@ -471,7 +459,6 @@ namespace IoTAutomobil
                     }
                 }
 
-                // Fallback: any anchor whose href includes the code token
                 var hrefRx = new Regex($@"<a\s+[^>]*href\s*=\s*(?:""(?<href>[^""]+)""|'(?<href>[^']+)')[^>]*>",
                     RegexOptions.IgnoreCase | RegexOptions.Singleline);
                 foreach (Match m in hrefRx.Matches(listHtml))
@@ -494,7 +481,6 @@ namespace IoTAutomobil
 
             try
             {
-                // 0) og:description
                 var og = Regex.Match(html, @"<meta\s+property\s*=\s*[""']og:description[""']\s+content\s*=\s*[""'](?<c>[^""']+)[""']",
                     RegexOptions.IgnoreCase | RegexOptions.Singleline);
                 if (og.Success)
@@ -503,7 +489,6 @@ namespace IoTAutomobil
                     if (!string.IsNullOrWhiteSpace(text)) return text;
                 }
 
-                // 1) meta description
                 var meta = Regex.Match(html, @"<meta\s+name\s*=\s*[""']description[""']\s+content\s*=\s*[""'](?<c>[^""']+)[""']",
                     RegexOptions.IgnoreCase | RegexOptions.Singleline);
                 if (meta.Success)
@@ -512,7 +497,6 @@ namespace IoTAutomobil
                     if (!string.IsNullOrWhiteSpace(text)) return text;
                 }
 
-                // 2) JSON-LD (application/ld+json)
                 var ld = Regex.Match(html, @"<script[^>]*type\s*=\s*[""']application/ld\+json[""'][^>]*>(?<json>.*?)</script>",
                     RegexOptions.IgnoreCase | RegexOptions.Singleline);
                 if (ld.Success)
@@ -527,7 +511,6 @@ namespace IoTAutomobil
                     }
                 }
 
-                // 3) H1
                 var h1 = Regex.Match(html, @"<h1[^>]*>(?<c>.*?)</h1>", RegexOptions.IgnoreCase | RegexOptions.Singleline);
                 if (h1.Success)
                 {
@@ -536,7 +519,6 @@ namespace IoTAutomobil
                         return text;
                 }
 
-                // 4) First sentence after code token
                 var idx = html.IndexOf(code, StringComparison.OrdinalIgnoreCase);
                 if (idx >= 0)
                 {

@@ -1,6 +1,4 @@
-﻿# Place your DTC list here (one per line or "CODE,Description").
-# Example lines (you can paste many from the site):
-P0300,Random/Multiple Cylinder Misfire Detected
+﻿P0300,Random/Multiple Cylinder Misfire Detected
 P0420,Catalyst System Efficiency Below Threshold (Bank 1)
 P0171,System Too Lean (Bank 1)
 P0455,Evaporative Emission System Leak Detected (Gross Leak)

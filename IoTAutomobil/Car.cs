@@ -11,15 +11,27 @@ namespace IoTAutomobil
         private const int MaxRpm = 6000;
         private const int MinSpeed = 0;
         private const int MaxSpeed = 120;
-        private const int UpdateIntervalSeconds = 5;
+        private const int UpdateIntervalSeconds = 10;
         private const int TripDurationMinutes = 10;
 
         private const double DtcProbabilityPerTick = 0.05;
         private static readonly TimeSpan DtcDuration = TimeSpan.FromMinutes(2);
 
+        private const double EngineTempMin = 80.0;
+        private const double EngineTempMax = 100.0;
+        private const double ThermalTauSeconds = 30.0;
+        private const double HighSpeedThresholdRatio = 0.95;
+        private const double HighSpeedSustainSeconds = 30.0;
+        private const double HighSpeedBonusMax = 2.0;
+        private const double TempJitter = 0.2;
+
         private double _currentSpeed = 0;
         private double _currentRpm = IdleRpm;
         private double _currentFuelLevel = 100.0;
+
+        private double _engineTemp = EngineTempMin;
+        private double _highSpeedAccumSeconds = 0;
+
         private readonly Random _random = new Random();
         private readonly SendDataService _sendService = new SendDataService();
 
@@ -43,7 +55,6 @@ namespace IoTAutomobil
             _dtcPrimary = dtcProvider ?? new CsvDtcProvider(csvPath, _random);
             _dtcFallback = new FallbackDtcProvider(_random);
 
-            // Consistent cache locations used by the web info provider
             var listCachePath = Path.Combine(dataDir, "dtc-list.cache.html");
             var codeCacheDir = Path.Combine(dataDir, "dtc-cache");
 
@@ -55,8 +66,6 @@ namespace IoTAutomobil
                     codePageTemplates: new[]
                     {
                         "https://club.autodoc.se/obd-codes/{code}",
-                        "https://club.autodoc.se/obd-code/{code}",
-                        "https://club.autodoc.se/koder/{code}"
                     },
                     codeCacheDir: codeCacheDir
                 ),
@@ -69,7 +78,6 @@ namespace IoTAutomobil
                 Console.WriteLine($"[DTC] BaseDir: {AppContext.BaseDirectory}");
                 Console.WriteLine($"[DTC] List cache: {listCachePath}");
                 Console.WriteLine($"[DTC] Code cache dir: {codeCacheDir}");
-                // Optional probe to create caches immediately
                 _dtcInfo.TryGetInfo("P0171", out _);
             }
         }
@@ -102,11 +110,13 @@ namespace IoTAutomobil
 
                 var dtc = GenerateDtc();
 
+                var engineTemp = (int)Math.Round(GenerateEngineTemperature());
+
                 var data = new SensorData(
                     rpm: (int)Math.Round(_currentRpm),
                     speed: (int)Math.Round(_currentSpeed),
                     fuel: Math.Round(_currentFuelLevel, 2),
-                    engineTemperature: (int)Math.Round(GenerateEngineTemperature()),
+                    engineTemperature: engineTemp,
                     dtc: dtc
                 );
 
@@ -119,7 +129,7 @@ namespace IoTAutomobil
                         dtcPart = $" | DTC: {dtc} (More: https://club.autodoc.se/obd-codes/all)";
                 }
 
-                Console.WriteLine($"Time: {elapsedTime.TotalSeconds:F0}s | Speed: {_currentSpeed:F0} km/h | RPM: {_currentRpm:F0} | Fuel: {_currentFuelLevel:F1}%{dtcPart}");
+                Console.WriteLine($"Time: {elapsedTime.TotalSeconds:F0}s | Speed: {_currentSpeed:F0} km/h | RPM: {_currentRpm:F0} | Temp: {engineTemp} °C | Fuel: {_currentFuelLevel:F1}%{dtcPart}");
 
                 await _sendService.SendDataAsync(data);
                 await Task.Delay(TimeSpan.FromSeconds(UpdateIntervalSeconds));
@@ -136,15 +146,15 @@ namespace IoTAutomobil
             switch (tripPhase)
             {
                 case "Accelerating":
-                    _currentSpeed += _random.Next(2, 5);
+                    _currentSpeed += _random.Next(3, 10);
                     _currentRpm = CalculateRpm(_currentSpeed);
                     break;
                 case "Cruising":
-                    _currentSpeed += _random.NextDouble() * 2 - 1;
+                    _currentSpeed += _random.NextDouble() * 4 - 1;
                     _currentRpm = CalculateRpm(_currentSpeed);
                     break;
                 case "Decelerating":
-                    _currentSpeed -= _random.Next(1, 4);
+                    _currentSpeed -= _random.Next(1, 3);
                     _currentRpm = CalculateRpm(_currentSpeed);
                     break;
             }
@@ -165,10 +175,29 @@ namespace IoTAutomobil
 
         private double GenerateEngineTemperature()
         {
-            double baseTemp = 85;
-            double speedFactor = _currentSpeed / MaxSpeed;
-            double temp = baseTemp + (speedFactor * _random.Next(0, 15));
-            return Math.Max(80, Math.Min(110, temp));
+            double speedFrac = Math.Clamp(_currentSpeed / MaxSpeed, 0.0, 1.0);
+            double loadFrac = Math.Clamp((_currentRpm - IdleRpm) / (double)(MaxRpm - IdleRpm), 0.0, 1.0);
+
+            bool highSpeed = speedFrac >= HighSpeedThresholdRatio;
+            if (highSpeed)
+                _highSpeedAccumSeconds = Math.Min(HighSpeedSustainSeconds, _highSpeedAccumSeconds + UpdateIntervalSeconds);
+            else
+                _highSpeedAccumSeconds = Math.Max(0.0, _highSpeedAccumSeconds - UpdateIntervalSeconds * 0.5);
+
+            double highSpeedBonus = HighSpeedBonusMax * (_highSpeedAccumSeconds / HighSpeedSustainSeconds);
+
+            double target = 82.0 + 10.0 * speedFrac + 6.0 * loadFrac + highSpeedBonus;
+            target = Math.Clamp(target, EngineTempMin, EngineTempMax);
+
+            double dt = UpdateIntervalSeconds;
+            double alpha = 1.0 - Math.Exp(-dt / ThermalTauSeconds);
+            _engineTemp += (target - _engineTemp) * alpha;
+
+            _engineTemp += (_random.NextDouble() - 0.5) * 2.0 * TempJitter;
+
+            _engineTemp = Math.Clamp(_engineTemp, EngineTempMin, EngineTempMax);
+
+            return _engineTemp;
         }
 
         private string GenerateDtc()
