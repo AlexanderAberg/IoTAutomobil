@@ -8,7 +8,7 @@ namespace IoTAutomobil
 {
     internal class Menu
     {
-        private readonly ThingSpeak thingSpeak;
+        private readonly ThingSpeak? thingSpeak;
 
         public void Run()
         {
@@ -58,11 +58,11 @@ namespace IoTAutomobil
                 switch (input)
                 {
                     case "1":
-                        var dataAnalyzer24h = new DataAnalyzer(24);
+                        var dataAnalyzer24h = new DataAnalyser(24);
                         dataAnalyzer24h.AnalyzeData();
                         break;
                     case "2":
-                        var dataAnalyzer100 = new DataAnalyzer(100);
+                        var dataAnalyzer100 = new DataAnalyser(100);
                         dataAnalyzer100.AnalyzeData();
                         break;
                     case "0":
@@ -77,6 +77,11 @@ namespace IoTAutomobil
 
             } while (input != "0");
 
+        }
+
+        internal void Run()
+        {
+            throw new NotImplementedException();
         }
     }
 }
