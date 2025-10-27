@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "IoTAutomobil": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "THINGSPEAK_API_KEY": "BRBG3652NUP1CCB4"
+      }
+    }
+  }
+}
