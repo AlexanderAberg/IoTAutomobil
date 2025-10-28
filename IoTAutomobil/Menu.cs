@@ -1,22 +1,19 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace IoTAutomobil
 {
     internal class Menu
     {
-        private readonly ThingSpeak? thingSpeak;
-
-        public void Run()
+        public async Task RunAsync()
         {
             string? input;
             do
             {
                 Console.Clear();
+                Console.WriteLine("***** IoTAutomobil *****");
                 Console.WriteLine("1. Data Analysis");
+                Console.WriteLine("2. Start Simulation");
                 Console.WriteLine("0. Exit");
                 Console.Write("Choose your option: ");
                 input = Console.ReadLine();
@@ -25,14 +22,23 @@ namespace IoTAutomobil
                 {
                     case "1":
                         var dataAnalysisMenu = new DataAnalysisMenu();
-                        dataAnalysisMenu.Run();
+                        await dataAnalysisMenu.RunAsync();
                         break;
+
+                    case "2":
+                        var car = new Car();
+                        await car.StartSimulationAsync();
+                        Console.WriteLine("Simulation finished. Press any key to return to menu...");
+                        Console.ReadKey();
+                        break;
+
                     case "0":
                         Console.WriteLine("Goodbye.");
                         break;
+
                     default:
                         Console.WriteLine("Invalid choice.");
-                        Console.WriteLine("Click any key to continue...");
+                        Console.WriteLine("Press any key to continue...");
                         Console.ReadKey();
                         break;
                 }
@@ -43,45 +49,44 @@ namespace IoTAutomobil
 
     internal class DataAnalysisMenu
     {
-        public DataAnalysisMenu()
+        public async Task RunAsync()
         {
             string? input;
             do
             {
                 Console.Clear();
+                Console.WriteLine("=== Data Analysis ===");
                 Console.WriteLine("1. Data for last 24 hours");
                 Console.WriteLine("2. Data for last 100 data points");
-                Console.WriteLine("0. Exit");
+                Console.WriteLine("0. Back");
                 Console.Write("Choose your option: ");
                 input = Console.ReadLine();
 
                 switch (input)
                 {
                     case "1":
-                        var dataAnalyzer24h = new DataAnalyser(24);
-                        dataAnalyzer24h.AnalyzeData();
+                        await new DataAnalyser().AnalyzeLast24hAsync();
+                        Console.WriteLine("Press any key to continue...");
+                        Console.ReadKey();
                         break;
+
                     case "2":
-                        var dataAnalyzer100 = new DataAnalyser(100);
-                        dataAnalyzer100.AnalyzeData();
+                        await new DataAnalyser().AnalyzeLastNAsync(100);
+                        Console.WriteLine("Press any key to continue...");
+                        Console.ReadKey();
                         break;
+
                     case "0":
-                        Console.WriteLine("Goodbye.");
                         break;
+
                     default:
                         Console.WriteLine("Invalid choice.");
-                        Console.WriteLine("Click any key to continue...");
+                        Console.WriteLine("Press any key to continue...");
                         Console.ReadKey();
                         break;
                 }
 
             } while (input != "0");
-
-        }
-
-        internal void Run()
-        {
-            throw new NotImplementedException();
         }
     }
 }
