@@ -6,10 +6,8 @@ namespace IoTAutomobil
     {
         static async Task Main(string[] args)
         {
-            // https://club.autodoc.se/obd-codes/all
-
-            var car = new Car();
-            await car.StartSimulationAsync();
+            var menu = new Menu();
+            await menu.RunAsync();
         }
     }
 }
