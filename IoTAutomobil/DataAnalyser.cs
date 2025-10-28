@@ -43,6 +43,12 @@ namespace IoTAutomobil
             var temps = entries.Select(f => ParseInt(f.field4)).Where(v => v > 0).ToArray();
             var dtcs = entries.Select(f => f.field5).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
 
+            var coords = entries
+                .Select(f => (lat: ParseDouble(f.field7), lon: ParseDouble(f.field8), t: f.created_at))
+                .Where(x => !double.IsNaN(x.lat) && !double.IsNaN(x.lon))
+                .OrderBy(x => x.t)
+                .ToArray();
+
             Console.WriteLine($"=== ThingSpeak summary for {label} ===");
             Console.WriteLine($"Entries: {entries.Length}");
             Console.WriteLine($"Time range: {entries.First().created_at:u} -> {entries.Last().created_at:u}");
@@ -60,6 +66,38 @@ namespace IoTAutomobil
                 Console.WriteLine($"Engine temp avg: {temps.Average():F1} °C, min: {temps.Min()} °C, max: {temps.Max()} °C");
 
             Console.WriteLine($"DTC entries: {dtcs.Length}" + (dtcs.Length > 0 ? $", last: {dtcs.Last()}" : ""));
+
+            if (coords.Length >= 2)
+            {
+                var totalMeters = 0.0;
+                for (int i = 1; i < coords.Length; i++)
+                    totalMeters += HaversineMeters(coords[i - 1].lat, coords[i - 1].lon, coords[i].lat, coords[i].lon);
+
+                var first = coords.First();
+                var last  = coords.Last();
+
+                Console.WriteLine($"GPS points: {coords.Length}");
+                Console.WriteLine($"Start:  ({first.lat:F6}, {first.lon:F6}) at {first.t:u}");
+                Console.WriteLine($"Finish: ({last.lat:F6}, {last.lon:F6}) at {last.t:u}");
+                Console.WriteLine($"Path length: {totalMeters/1000.0:F3} km");
+            }
+            else
+            {
+                Console.WriteLine("GPS: insufficient data points.");
+            }
+        }
+
+        private static double HaversineMeters(double lat1, double lon1, double lat2, double lon2)
+        {
+            const double R = 6371000.0;
+            static double DegToRad(double d) => d * Math.PI / 180.0;
+            var dLat = DegToRad(lat2 - lat1);
+            var dLon = DegToRad(lon2 - lon1);
+            var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+                    Math.Cos(DegToRad(lat1)) * Math.Cos(DegToRad(lat2)) *
+                    Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+            var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+            return R * c;
         }
     }
 }

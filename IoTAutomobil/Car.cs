@@ -33,6 +33,9 @@ namespace IoTAutomobil
         private double _engineTemp = EngineTempMin;
         private double _highSpeedAccumSeconds = 0;
 
+        private GPS _gps = GPS.CreateStart();
+        private double _headingDeg = 90.0;
+
         private readonly Random _random = new Random();
         private readonly SendDataService _sendService = new SendDataService();
 
@@ -42,10 +45,10 @@ namespace IoTAutomobil
         private readonly IDtcInfoProvider _dtcInfo;
 
         private string? _activeDtc = null;
-        private DateTime _nextDtcAllowedAt;
         private DateTime _activeDtcClearAt = DateTime.MinValue;
         private DateTime _plannedDtcAt = DateTime.MaxValue;
         private DateTime _simulationStart;
+        private DateTime _nextDtcAllowedAt = DateTime.MinValue;
 
         private static bool DtcDebug => string.Equals(Environment.GetEnvironmentVariable("DTC_INFO_DEBUG"), "1", StringComparison.OrdinalIgnoreCase);
 
@@ -120,7 +123,12 @@ namespace IoTAutomobil
                     fuel: Math.Round(_currentFuelLevel, 2),
                     engineTemperature: engineTemp,
                     dtc: dtc
-                );
+                )
+                {
+                    Latitude = _gps.Latitude,
+                    Longitude = _gps.Longitude,
+                    Altitude = _gps.Altitude
+                };
 
                 var dtcPart = "";
                 if (!string.IsNullOrEmpty(dtc))
@@ -131,7 +139,7 @@ namespace IoTAutomobil
                         dtcPart = $" | DTC: {dtc} (More: https://club.autodoc.se/obd-codes/all)";
                 }
 
-                Console.WriteLine($"Time: {elapsedTime.TotalSeconds:F0}s | Speed: {_currentSpeed:F0} km/h | RPM: {_currentRpm:F0} | Temp: {engineTemp} °C | Fuel: {_currentFuelLevel:F1}%{dtcPart}");
+                Console.WriteLine($"Time: {elapsedTime.TotalSeconds:F0}s | Speed: {_currentSpeed:F0} km/h | RPM: {_currentRpm:F0} | Temp: {engineTemp} °C | Fuel: {_currentFuelLevel:F1}% | Lat: {_gps.Latitude:F6}, Lon: {_gps.Longitude:F6}{dtcPart}");
 
                 await _sendService.SendDataAsync(data);
                 await Task.Delay(TimeSpan.FromSeconds(UpdateIntervalSeconds));
@@ -163,6 +171,15 @@ namespace IoTAutomobil
 
             _currentSpeed = Math.Max(MinSpeed, Math.Min(MaxSpeed, _currentSpeed));
             _currentRpm = Math.Max(IdleRpm, _currentRpm);
+
+            var metersPerSecond = _currentSpeed / 3.6;
+            var distanceMeters = metersPerSecond * UpdateIntervalSeconds;
+
+            _headingDeg += (_random.NextDouble() * 10.0) - 5.0;
+            if (_headingDeg < 0) _headingDeg += 360;
+            if (_headingDeg >= 360) _headingDeg -= 360;
+
+            _gps = _gps.Moved(distanceMeters, _headingDeg, speedKmh: _currentSpeed, altitude: _gps.Altitude, timestampUtc: DateTime.UtcNow);
 
             double consumptionRate = (_currentSpeed / MaxSpeed) * (_currentRpm / MaxRpm) * MaxFuelConsumptionPerSecond;
             _currentFuelLevel -= consumptionRate * UpdateIntervalSeconds;
@@ -212,7 +229,6 @@ namespace IoTAutomobil
 
                 Console.WriteLine($"DTC cleared: {_activeDtc}");
                 _activeDtc = null;
-
                 _nextDtcAllowedAt = now.AddMinutes(DtcCooldownMinutes);
                 return string.Empty;
             }
@@ -227,7 +243,6 @@ namespace IoTAutomobil
                 return _activeDtc;
             }
 
-            // Random DTC
             if (_activeDtc is null && _random.NextDouble() < DtcProbabilityPerTick)
             {
                 _activeDtc = PickRandomDtc();
