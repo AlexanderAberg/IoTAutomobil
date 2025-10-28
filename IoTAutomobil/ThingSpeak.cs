@@ -13,10 +13,12 @@ namespace IoTAutomobil
     {
         private static readonly HttpClient s_http = new HttpClient();
         private readonly string _apiKey;
+        private readonly string? _channelId;
 
         public ThingSpeak(string? apiKey = null)
         {
             _apiKey = apiKey ?? Environment.GetEnvironmentVariable("THINGSPEAK_API_KEY");
+            _channelId = _channelId ?? Environment.GetEnvironmentVariable("THINGSPEAK_CHANNEL_ID");
         }
 
         internal async Task SendDataAsync(SensorData sensorData)
@@ -57,10 +59,9 @@ namespace IoTAutomobil
 
         internal async Task<FeedResponse?> GetFeedsAsync(int? results = null, int? days = null)
         {
-            var channelIdStr = Environment.GetEnvironmentVariable("THINGSPEAK_CHANNEL_ID");
-            if (!int.TryParse(channelIdStr, NumberStyles.Integer, CultureInfo.InvariantCulture, out var channelId))
+            if (!int.TryParse(_channelId, NumberStyles.Integer, CultureInfo.InvariantCulture, out var channelId))
             {
-                Console.WriteLine("ThingSpeak read: env THINGSPEAK_CHANNEL_ID not set or invalid. Set it to your channel ID.");
+                Console.WriteLine("ThingSpeak read: env THINGSPEAK_CHANNEL_ID not set or invalid. Set it to your numeric channel ID.");
                 return null;
             }
 
@@ -84,6 +85,9 @@ namespace IoTAutomobil
 
             try
             {
+                var masked = uri.ToString().Replace(readKey ?? string.Empty, "****");
+                Console.WriteLine($"ThingSpeak read request: {masked}");
+
                 using var resp = await s_http.GetAsync(uri).ConfigureAwait(false);
                 var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
 
