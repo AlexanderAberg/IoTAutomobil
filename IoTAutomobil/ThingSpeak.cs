@@ -18,7 +18,7 @@ namespace IoTAutomobil
         public ThingSpeak(string? apiKey = null)
         {
             _apiKey = apiKey ?? Environment.GetEnvironmentVariable("THINGSPEAK_API_KEY");
-            _channelId = _channelId ?? Environment.GetEnvironmentVariable("THINGSPEAK_CHANNEL_ID");
+            _channelId = Environment.GetEnvironmentVariable("THINGSPEAK_CHANNEL_ID");
         }
 
         internal async Task SendDataAsync(SensorData sensorData)
@@ -30,6 +30,7 @@ namespace IoTAutomobil
             }
 
             bool hasDtc = !string.IsNullOrWhiteSpace(sensorData.Dtc);
+            bool hasGps = sensorData.Latitude.HasValue && sensorData.Longitude.HasValue;
 
             var sb = new StringBuilder();
             sb.Append("api_key=").Append(Uri.EscapeDataString(_apiKey));
@@ -42,6 +43,13 @@ namespace IoTAutomobil
                 sb.Append("&field5=").Append(Uri.EscapeDataString(sensorData.Dtc));
 
             sb.Append("&field6=").Append(hasDtc ? "1" : "0");
+
+            if (hasGps)
+            {
+                sb.Append("&field7=").Append(sensorData.Latitude.Value.ToString(CultureInfo.InvariantCulture));
+                sb.Append("&field8=").Append(sensorData.Longitude.Value.ToString(CultureInfo.InvariantCulture));
+            }
+
             sb.Append("&status=").Append(Uri.EscapeDataString(hasDtc ? $"DTC: {sensorData.Dtc}" : "OK"));
 
             var uri = new UriBuilder("https://api.thingspeak.com/update") { Query = sb.ToString() }.Uri;
@@ -127,6 +135,8 @@ namespace IoTAutomobil
             public string? field4 { get; set; }
             public string? field5 { get; set; }
             public string? field6 { get; set; }
+            public string? field7 { get; set; }
+            public string? field8 { get; set; }
         }
 
         internal sealed class FeedEntry
@@ -139,6 +149,8 @@ namespace IoTAutomobil
             public string? field4 { get; set; }
             public string? field5 { get; set; }
             public string? field6 { get; set; }
+            public string? field7 { get; set; }
+            public string? field8 { get; set; }
         }
     }
 }
