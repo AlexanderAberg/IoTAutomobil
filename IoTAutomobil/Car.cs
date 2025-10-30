@@ -1,4 +1,4 @@
-﻿using IoTAutomobil.Data;
+﻿using IoTAutomobil.Simulation;
 using System;
 using System.IO;
 using System.Threading.Tasks;
@@ -31,27 +31,23 @@ namespace IoTAutomobil
         private double _currentRpm = IdleRpm;
         private double _currentFuelLevel = 100.0;
 
-        private double _engineTemp = EngineTempMin;
-        private double _highSpeedAccumSeconds = 0;
-
         private GPS _gps = GPS.CreateStart();
-        private double _headingDeg = 90.0;
 
         private readonly Random _random = new Random();
         private readonly SendDataService _sendService = new SendDataService();
 
         private readonly IDtcProvider _dtcPrimary;
         private readonly IDtcProvider _dtcFallback;
-
         private readonly IDtcInfoProvider _dtcInfo;
 
-        private string? _activeDtc = null;
-        private DateTime _activeDtcClearAt = DateTime.MinValue;
         private DateTime _plannedDtcAt = DateTime.MaxValue;
         private DateTime _simulationStart;
-        private DateTime _nextDtcAllowedAt = DateTime.MinValue;
 
         private static bool DtcDebug => string.Equals(Environment.GetEnvironmentVariable("DTC_INFO_DEBUG"), "1", StringComparison.OrdinalIgnoreCase);
+
+        private readonly EngineTemperatureModel _tempModel;
+        private readonly GpsNavigator _nav;
+        private readonly DtcManager _dtcMgr;
 
         public Car(IDtcProvider? dtcProvider = null)
         {
@@ -71,13 +67,28 @@ namespace IoTAutomobil
                     cacheMaxAge: TimeSpan.FromDays(7),
                     codePageTemplates: new[]
                     {
-                        "https://club.autodoc.se/obd-codes/{code}",
+                            "https://club.autodoc.se/obd-codes/{code}",
                     },
                     codeCacheDir: codeCacheDir
                 ),
                 new CsvDtcInfoProvider(csvPath),
                 new HeuristicDtcInfoProvider()
             );
+
+            _tempModel = new EngineTemperatureModel(
+                min: EngineTempMin,
+                max: EngineTempMax,
+                tauSeconds: ThermalTauSeconds,
+                highSpeedThresholdRatio: HighSpeedThresholdRatio,
+                highSpeedSustainSeconds: HighSpeedSustainSeconds,
+                highSpeedBonusMax: HighSpeedBonusMax,
+                jitter: TempJitter,
+                initial: EngineTempMin,
+                rand: _random
+            );
+
+            _nav = new GpsNavigator(GPS.CreateStart(), initialHeadingDeg: 90.0, rand: _random);
+            _dtcMgr = new DtcManager(DtcDuration, DtcProbabilityPerTick, TimeSpan.FromMinutes(DtcCooldownMinutes));
 
             if (DtcDebug)
             {
@@ -102,6 +113,7 @@ namespace IoTAutomobil
             }
             var secondsWindow = Math.Max(1, (int)(latest - earliest).TotalSeconds);
             _plannedDtcAt = earliest.AddSeconds(_random.Next(secondsWindow));
+            _dtcMgr.Plan(_plannedDtcAt);
 
             while (true)
             {
@@ -114,9 +126,16 @@ namespace IoTAutomobil
 
                 SimulateTrip();
 
-                var dtc = GenerateDtc();
+                var dtc = _dtcMgr.Tick(PickRandomDtc, LogDtcGenerated);
 
-                var engineTemp = (int)Math.Round(GenerateEngineTemperature());
+                var engineTemp = _tempModel.Update(
+                    speedKmh: _currentSpeed,
+                    rpm: _currentRpm,
+                    idleRpm: IdleRpm,
+                    maxRpm: MaxRpm,
+                    maxSpeedKmh: MaxSpeed,
+                    dtSeconds: UpdateIntervalSeconds
+                );
 
                 var data = new SensorData(
                     rpm: (int)Math.Round(_currentRpm),
@@ -173,14 +192,7 @@ namespace IoTAutomobil
             _currentSpeed = Math.Max(MinSpeed, Math.Min(MaxSpeed, _currentSpeed));
             _currentRpm = Math.Max(IdleRpm, _currentRpm);
 
-            var metersPerSecond = _currentSpeed / 3.6;
-            var distanceMeters = metersPerSecond * UpdateIntervalSeconds;
-
-            _headingDeg += (_random.NextDouble() * 10.0) - 5.0;
-            if (_headingDeg < 0) _headingDeg += 360;
-            if (_headingDeg >= 360) _headingDeg -= 360;
-
-            _gps = _gps.Moved(distanceMeters, _headingDeg, speedKmh: _currentSpeed, altitude: _gps.Altitude, timestampUtc: DateTime.UtcNow);
+            _gps = _nav.Update(_currentSpeed, UpdateIntervalSeconds);
 
             double consumptionRate = (_currentSpeed / MaxSpeed) * (_currentRpm / MaxRpm) * MaxFuelConsumptionPerSecond;
             _currentFuelLevel -= consumptionRate * UpdateIntervalSeconds;
@@ -191,46 +203,6 @@ namespace IoTAutomobil
         {
             if (speed < 1) return IdleRpm;
             return IdleRpm + (speed / MaxSpeed) * (MaxRpm - IdleRpm);
-        }
-
-        private double GenerateEngineTemperature(EngineTemperatureModel)
-        {
-            Data.EngineTemperatureModel model = new Data.EngineTemperatureModel();
-        }
-
-        private string GenerateDtc()
-        {
-            var now = DateTime.Now;
-
-            if (!string.IsNullOrEmpty(_activeDtc))
-            {
-                if (now < _activeDtcClearAt) return _activeDtc;
-
-                Console.WriteLine($"DTC cleared: {_activeDtc}");
-                _activeDtc = null;
-                _nextDtcAllowedAt = now.AddMinutes(DtcCooldownMinutes);
-                return string.Empty;
-            }
-
-            if (now < _nextDtcAllowedAt) return string.Empty;
-
-            if (_activeDtc is null && now >= _plannedDtcAt)
-            {
-                _activeDtc = PickRandomDtc();
-                _activeDtcClearAt = now.Add(DtcDuration);
-                LogDtcGenerated("scheduled", _activeDtc);
-                return _activeDtc;
-            }
-
-            if (_activeDtc is null && _random.NextDouble() < DtcProbabilityPerTick)
-            {
-                _activeDtc = PickRandomDtc();
-                _activeDtcClearAt = now.Add(DtcDuration);
-                LogDtcGenerated("random", _activeDtc);
-                return _activeDtc;
-            }
-
-            return string.Empty;
         }
 
         private void LogDtcGenerated(string kind, string code)
