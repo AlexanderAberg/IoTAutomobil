@@ -127,7 +127,6 @@ namespace IoTAutomobil
     {
         public static string BuildInfoUrl(string code)
         {
-            // Direct per-code page for human viewing
             return $"https://club.autodoc.se/obd-codes/{code.ToLowerInvariant()}";
         }
 
@@ -151,10 +150,10 @@ namespace IoTAutomobil
             http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("(Windows NT 10.0; Win64; x64)"));
             http.DefaultRequestHeaders.Accept.ParseAdd("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
             http.DefaultRequestHeaders.AcceptLanguage.ParseAdd("sv-SE,sv;q=0.9,en-US;q=0.8,en;q=0.7");
-            // Accept-Encoding is set by AutomaticDecompression
+
             if (!string.IsNullOrWhiteSpace(referer))
             {
-                try { http.DefaultRequestHeaders.Referrer = new Uri(referer); } catch { /* ignore */ }
+                try { http.DefaultRequestHeaders.Referrer = new Uri(referer); } catch { }
             }
             return http;
         }
