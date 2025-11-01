@@ -18,7 +18,7 @@ namespace IoTAutomobil.DTC
                 foreach (Match m in aRx.Matches(listHtml))
                 {
                     var text = DtcInfoUtil.StripTags(m.Groups["text"].Value);
-                    if (text.IndexOf(code, StringComparison.OrdinalIgnoreCase) >= 0)
+                    if (text.Contains(code, StringComparison.OrdinalIgnoreCase))
                     {
                         return DtcInfoUtil.MakeAbsoluteUrl("https://club.autodoc.se/obd-codes/all", m.Groups["href"].Value);
                     }
@@ -29,7 +29,7 @@ namespace IoTAutomobil.DTC
                 foreach (Match m in hrefRx.Matches(listHtml))
                 {
                     var href = m.Groups["href"].Value;
-                    if (href.IndexOf(code, StringComparison.OrdinalIgnoreCase) >= 0)
+                    if (href.Contains(code, StringComparison.OrdinalIgnoreCase))
                     {
                         return DtcInfoUtil.MakeAbsoluteUrl("https://club.autodoc.se/obd-codes/all", href);
                     }

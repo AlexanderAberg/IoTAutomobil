@@ -30,7 +30,7 @@ namespace IoTAutomobil.DTC
             _cacheMaxAge = cacheMaxAge;
             _codePageTemplates = codePageTemplates is { Length: > 0 }
                 ? codePageTemplates
-                : new[] { "https://club.autodoc.se/obd-codes/{code}" };
+                : ["https://club.autodoc.se/obd-codes/{code}"];
             _codeCacheDir = codeCacheDir ?? Path.Combine(Path.GetDirectoryName(listCachePath) ?? ".", "dtc-cache");
         }
 
@@ -110,7 +110,7 @@ namespace IoTAutomobil.DTC
             try
             {
                 var len = string.IsNullOrEmpty(html) ? 0 : html.Length;
-                var hasCode = !string.IsNullOrEmpty(html) && html.IndexOf(code, StringComparison.OrdinalIgnoreCase) >= 0;
+                var hasCode = !string.IsNullOrEmpty(html) && html.Contains(code, StringComparison.OrdinalIgnoreCase);
                 Console.WriteLine($"[DTC] Web {kind} html: {source} (len={len}, containsCode={hasCode})");
             }
             catch { }
