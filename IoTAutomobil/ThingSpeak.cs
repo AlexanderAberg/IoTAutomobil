@@ -11,7 +11,7 @@ namespace IoTAutomobil
 {
     internal class ThingSpeak
     {
-        private static readonly HttpClient s_http = new HttpClient();
+        private static readonly HttpClient s_http = new();
         private readonly string _apiKey;
         private readonly string? _channelId;
 
@@ -122,35 +122,35 @@ namespace IoTAutomobil
 
         internal sealed class FeedResponse
         {
-            public Channel? channel { get; set; }
-            public FeedEntry[]? feeds { get; set; }
+            public Channel? Channel { get; set; }
+            public FeedEntry[]? Feeds { get; set; }
         }
 
         internal sealed class Channel
         {
-            public string? name { get; set; }
-            public string? field1 { get; set; }
-            public string? field2 { get; set; }
-            public string? field3 { get; set; }
-            public string? field4 { get; set; }
-            public string? field5 { get; set; }
-            public string? field6 { get; set; }
-            public string? field7 { get; set; }
-            public string? field8 { get; set; }
+            public string? Name { get; set; }
+            public string? Field1 { get; set; }
+            public string? Field2 { get; set; }
+            public string? Field3 { get; set; }
+            public string? Field4 { get; set; }
+            public string? Field5 { get; set; }
+            public string? Field6 { get; set; }
+            public string? Field7 { get; set; }
+            public string? Field8 { get; set; }
         }
 
         internal sealed class FeedEntry
         {
-            public DateTime created_at { get; set; }
-            public int entry_id { get; set; }
-            public string? field1 { get; set; }
-            public string? field2 { get; set; }
-            public string? field3 { get; set; }
-            public string? field4 { get; set; }
-            public string? field5 { get; set; }
-            public string? field6 { get; set; }
-            public string? field7 { get; set; }
-            public string? field8 { get; set; }
+            public DateTime Created_at { get; set; }
+            public int Entry_id { get; set; }
+            public string? Field1 { get; set; }
+            public string? Field2 { get; set; }
+            public string? Field3 { get; set; }
+            public string? Field4 { get; set; }
+            public string? Field5 { get; set; }
+            public string? Field6 { get; set; }
+            public string? Field7 { get; set; }
+            public string? Field8 { get; set; }
         }
     }
 }

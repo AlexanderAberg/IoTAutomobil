@@ -34,8 +34,8 @@ namespace IoTAutomobil
 
         private GPS _gps = GPS.CreateStart();
 
-        private readonly Random _random = new Random();
-        private readonly SendDataService _sendService = new SendDataService();
+        private readonly Random _random = new();
+        private readonly SendDataService _sendService = new();
 
         private readonly IDtcProvider _dtcPrimary;
         private readonly IDtcProvider _dtcFallback;
@@ -66,10 +66,10 @@ namespace IoTAutomobil
                     listUrl: "https://club.autodoc.se/obd-codes/all",
                     listCachePath: listCachePath,
                     cacheMaxAge: TimeSpan.FromDays(7),
-                    codePageTemplates: new[]
-                    {
+                    codePageTemplates:
+                    [
                             "https://club.autodoc.se/obd-codes/{code}",
-                    },
+                    ],
                     codeCacheDir: codeCacheDir
                 ),
                 new CsvDtcInfoProvider(csvPath),
@@ -200,7 +200,7 @@ namespace IoTAutomobil
             _currentFuelLevel = Math.Max(0, _currentFuelLevel);
         }
 
-        private double CalculateRpm(double speed)
+        private static double CalculateRpm(double speed)
         {
             if (speed < 1) return IdleRpm;
             return IdleRpm + (speed / MaxSpeed) * (MaxRpm - IdleRpm);

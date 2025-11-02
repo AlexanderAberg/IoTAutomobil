@@ -18,7 +18,7 @@ namespace IoTAutomobil
         public DateTime Timestamp { get; init; }
 
         public static GPS CreateStart(double speedKmh = 0, double heading = 0, double altitude = 0, DateTime? timestampUtc = null)
-            => new GPS
+            => new()
             {
                 Latitude = DefaultStartLatitude,
                 Longitude = DefaultStartLongitude,

@@ -7,7 +7,7 @@ namespace IoTAutomobil
 {
     internal sealed class DataAnalyser
     {
-        private readonly ThingSpeak _ts = new ThingSpeak();
+        private readonly ThingSpeak _ts = new();
 
         public async Task AnalyzeLast24hAsync()
         {
@@ -29,29 +29,29 @@ namespace IoTAutomobil
 
         private static void PrintSummary(string label, ThingSpeak.FeedResponse? feed)
         {
-            if (feed?.feeds is null || feed.feeds.Length == 0)
+            if (feed?.Feeds is null || feed.Feeds.Length == 0)
             {
                 Console.WriteLine($"No data available for {label}.");
                 return;
             }
 
-            var entries = feed.feeds;
+            var entries = feed.Feeds;
 
-            var rpms = entries.Select(f => ParseInt(f.field1)).Where(v => v > 0).ToArray();
-            var speeds = entries.Select(f => ParseInt(f.field2)).Where(v => v >= 0).ToArray();
-            var fuels = entries.Select(f => ParseDouble(f.field3)).Where(v => !double.IsNaN(v)).ToArray();
-            var temps = entries.Select(f => ParseInt(f.field4)).Where(v => v > 0).ToArray();
-            var dtcs = entries.Select(f => f.field5).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
+            var rpms = entries.Select(f => ParseInt(f.Field1)).Where(v => v > 0).ToArray();
+            var speeds = entries.Select(f => ParseInt(f.Field2)).Where(v => v >= 0).ToArray();
+            var fuels = entries.Select(f => ParseDouble(f.Field3)).Where(v => !double.IsNaN(v)).ToArray();
+            var temps = entries.Select(f => ParseInt(f.Field4)).Where(v => v > 0).ToArray();
+            var dtcs = entries.Select(f => f.Field5).Where(s => !string.IsNullOrWhiteSpace(s)).ToArray();
 
             var coords = entries
-                .Select(f => (lat: ParseDouble(f.field7), lon: ParseDouble(f.field8), t: f.created_at))
+                .Select(f => (lat: ParseDouble(f.Field7), lon: ParseDouble(f.Field8), t: f.Created_at))
                 .Where(x => !double.IsNaN(x.lat) && !double.IsNaN(x.lon))
                 .OrderBy(x => x.t)
                 .ToArray();
 
             Console.WriteLine($"=== ThingSpeak summary for {label} ===");
             Console.WriteLine($"Entries: {entries.Length}");
-            Console.WriteLine($"Time range: {entries.First().created_at:u} -> {entries.Last().created_at:u}");
+            Console.WriteLine($"Time range: {entries.First().Created_at:u} -> {entries.Last().Created_at:u}");
 
             if (rpms.Length > 0)
                 Console.WriteLine($"RPM avg: {rpms.Average():F0}, min: {rpms.Min()}, max: {rpms.Max()}");

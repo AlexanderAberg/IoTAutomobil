@@ -7,7 +7,7 @@ namespace IoTAutomobil
         static async Task Main(string[] args)
         {
             var menu = new Menu();
-            await menu.RunAsync();
+            await Menu.RunAsync();
         }
     }
 }

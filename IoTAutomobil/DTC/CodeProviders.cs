@@ -20,9 +20,9 @@ namespace IoTAutomobil.DTC
         {
             try
             {
-                if (!File.Exists(filePath)) return Array.Empty<string>();
+                if (!File.Exists(filePath)) return [];
 
-                return File.ReadLines(filePath)
+                return [.. File.ReadLines(filePath)
                     .Select(l => l.Trim())
                     .Where(l => !string.IsNullOrWhiteSpace(l) && !l.StartsWith("#"))
                     .Select(line =>
@@ -32,12 +32,11 @@ namespace IoTAutomobil.DTC
                     })
                     .Where(code => code is not null)
                     .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .Cast<string>()
-                    .ToArray();
+                    .Cast<string>()];
             }
             catch
             {
-                return Array.Empty<string>();
+                return [];
             }
         }
 
@@ -55,7 +54,7 @@ namespace IoTAutomobil.DTC
 
     internal sealed class FallbackDtcProvider : IDtcProvider
     {
-        private readonly string[] _codes = { "P0300", "P0420", "P0171", "P0455", "P0133" };
+        private readonly string[] _codes = ["P0300", "P0420", "P0171", "P0455", "P0133"];
         private readonly Random _random;
 
         public FallbackDtcProvider(Random random) => _random = random;

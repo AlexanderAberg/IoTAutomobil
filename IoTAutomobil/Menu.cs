@@ -5,7 +5,7 @@ namespace IoTAutomobil
 {
     internal class Menu
     {
-        public async Task RunAsync()
+        public static async Task RunAsync()
         {
             string? input;
             do
@@ -22,7 +22,7 @@ namespace IoTAutomobil
                 {
                     case "1":
                         var dataAnalysisMenu = new DataAnalysisMenu();
-                        await dataAnalysisMenu.RunAsync();
+                        await DataAnalysisMenu.RunAsync();
                         break;
 
                     case "2":
@@ -49,7 +49,7 @@ namespace IoTAutomobil
 
     internal class DataAnalysisMenu
     {
-        public async Task RunAsync()
+        public static async Task RunAsync()
         {
             string? input;
             do
