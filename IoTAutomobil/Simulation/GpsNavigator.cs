@@ -2,18 +2,11 @@ using System;
 
 namespace IoTAutomobil.Simulation
 {
-    internal sealed class GpsNavigator
+    internal sealed class GpsNavigator(GPS? start = null, double initialHeadingDeg = 90, Random? rand = null)
     {
-        private GPS _gps;
-        private double _headingDeg;
-        private readonly Random _rand;
-
-        public GpsNavigator(GPS? start = null, double initialHeadingDeg = 90, Random? rand = null)
-        {
-            _gps = start ?? GPS.CreateStart();
-            _headingDeg = initialHeadingDeg;
-            _rand = rand ?? new Random();
-        }
+        private GPS _gps = start ?? GPS.CreateStart();
+        private double _headingDeg = initialHeadingDeg;
+        private readonly Random _rand = rand ?? new Random();
 
         public GPS Current => _gps;
 

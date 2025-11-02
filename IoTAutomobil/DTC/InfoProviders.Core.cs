@@ -5,13 +5,11 @@ using System.Text.RegularExpressions;
 
 namespace IoTAutomobil.DTC
 {
-    internal sealed class ChainDtcInfoProvider : IDtcInfoProvider
+    internal sealed class ChainDtcInfoProvider(params IDtcInfoProvider[] providers) : IDtcInfoProvider
     {
-        private readonly IDtcInfoProvider[] _providers;
+        private readonly IDtcInfoProvider[] _providers = providers;
         private readonly bool _debug =
             string.Equals(Environment.GetEnvironmentVariable("DTC_INFO_DEBUG"), "1", StringComparison.OrdinalIgnoreCase);
-
-        public ChainDtcInfoProvider(params IDtcInfoProvider[] providers) => _providers = providers;
 
         public bool TryGetInfo(string code, out DtcInfo info)
         {
@@ -31,14 +29,9 @@ namespace IoTAutomobil.DTC
         }
     }
 
-    internal sealed class CsvDtcInfoProvider : IDtcInfoProvider
+    internal sealed class CsvDtcInfoProvider(string filePath) : IDtcInfoProvider
     {
-        private readonly Dictionary<string, string> _map;
-
-        public CsvDtcInfoProvider(string filePath)
-        {
-            _map = LoadDescriptions(filePath);
-        }
+        private readonly Dictionary<string, string> _map = LoadDescriptions(filePath);
 
         private static Dictionary<string, string> LoadDescriptions(string filePath)
         {
@@ -52,7 +45,7 @@ namespace IoTAutomobil.DTC
                 foreach (var raw in File.ReadLines(filePath))
                 {
                     var line = raw.Trim();
-                    if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#")) continue;
+                    if (string.IsNullOrWhiteSpace(line) || line.StartsWith('#')) continue;
 
                     var m = rx.Match(line);
                     if (!m.Success) continue;

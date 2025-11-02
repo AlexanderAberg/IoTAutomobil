@@ -30,7 +30,7 @@ namespace IoTAutomobil
 
         public GPS Moved(double distanceMeters, double headingDegrees, double? speedKmh = null, double? altitude = null, DateTime? timestampUtc = null)
         {
-            if (distanceMeters < 0) throw new ArgumentOutOfRangeException(nameof(distanceMeters));
+            ArgumentOutOfRangeException.ThrowIfNegative(distanceMeters);
             var headingRad = DegToRad(NormalizeHeading(headingDegrees));
             var lat1 = DegToRad(Latitude);
             var lon1 = DegToRad(Longitude);

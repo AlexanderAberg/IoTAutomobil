@@ -38,8 +38,8 @@ namespace IoTAutomobil
         private readonly SendDataService _sendService = new();
 
         private readonly IDtcProvider _dtcPrimary;
-        private readonly IDtcProvider _dtcFallback;
-        private readonly IDtcInfoProvider _dtcInfo;
+        private readonly FallbackDtcProvider _dtcFallback;
+        private readonly ChainDtcInfoProvider _dtcInfo;
 
         private DateTime _plannedDtcAt = DateTime.MaxValue;
         private DateTime _simulationStart;
@@ -162,7 +162,7 @@ namespace IoTAutomobil
 
                 Console.WriteLine($"Time: {elapsedTime.TotalSeconds:F0}s | Speed: {_currentSpeed:F0} km/h | RPM: {_currentRpm:F0} | Temp: {engineTemp} °C | Fuel: {_currentFuelLevel:F1}% | Lat: {_gps.Latitude:F6}, Lon: {_gps.Longitude:F6}{dtcPart}");
 
-                await _sendService.SendDataAsync(data);
+                await SendDataService.SendDataAsync(data);
                 await Task.Delay(TimeSpan.FromSeconds(UpdateIntervalSeconds));
             }
         }

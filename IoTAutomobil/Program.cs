@@ -4,10 +4,9 @@ namespace IoTAutomobil
 {
     internal class Program
     {
-        static async Task Main(string[] args)
+        static async Task Main()
         {
-            var menu = new Menu();
-            await Menu.RunAsync();
+            await Menu.RunAsync(new DataAnalysisMenu());
         }
     }
 }

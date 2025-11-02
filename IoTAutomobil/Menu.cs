@@ -5,8 +5,9 @@ namespace IoTAutomobil
 {
     internal class Menu
     {
-        public static async Task RunAsync()
+        public static async Task RunAsync(DataAnalysisMenu dataAnalysisMenu)
         {
+            ArgumentNullException.ThrowIfNull(dataAnalysisMenu);
             string? input;
             do
             {
@@ -21,7 +22,6 @@ namespace IoTAutomobil
                 switch (input)
                 {
                     case "1":
-                        var dataAnalysisMenu = new DataAnalysisMenu();
                         await DataAnalysisMenu.RunAsync();
                         break;
 

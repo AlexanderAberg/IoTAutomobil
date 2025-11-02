@@ -72,13 +72,13 @@ namespace IoTAutomobil
                 var totalMeters = 0.0;
                 for (int i = 1; i < coords.Length; i++)
                     totalMeters += HaversineMeters(coords[i - 1].lat, coords[i - 1].lon, coords[i].lat, coords[i].lon);
-
-                var first = coords.First();
-                var last  = coords.Last();
+                var (lat, lon, t) = coords.Last();
 
                 Console.WriteLine($"GPS points: {coords.Length}");
+
+                var first = coords.First();
                 Console.WriteLine($"Start:  ({first.lat:F6}, {first.lon:F6}) at {first.t:u}");
-                Console.WriteLine($"Finish: ({last.lat:F6}, {last.lon:F6}) at {last.t:u}");
+                Console.WriteLine($"Finish: ({lat:F6}, {lon:F6}) at {t:u}");
                 Console.WriteLine($"Path length: {totalMeters/1000.0:F3} km");
             }
             else

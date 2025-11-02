@@ -101,11 +101,12 @@ namespace IoTAutomobil
                     return null;
                 }
 
-                var opts = new JsonSerializerOptions
+                JsonSerializerOptions jsonSerializerOptions = new()
                 {
                     PropertyNameCaseInsensitive = true,
                     NumberHandling = JsonNumberHandling.AllowReadingFromString
                 };
+                var opts = jsonSerializerOptions;
 
                 return JsonSerializer.Deserialize<FeedResponse>(json, opts);
             }

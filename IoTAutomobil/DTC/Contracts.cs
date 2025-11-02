@@ -10,17 +10,10 @@ namespace IoTAutomobil.DTC
         bool TryGetInfo(string code, out DtcInfo info);
     }
 
-    internal sealed class DtcInfo
+    internal sealed class DtcInfo(string code, string? title, string url)
     {
-        public string Code { get; }
-        public string? Title { get; }
-        public string Url { get; }
-
-        public DtcInfo(string code, string? title, string url)
-        {
-            Code = code;
-            Title = title;
-            Url = url;
-        }
+        public string Code { get; } = code;
+        public string? Title { get; } = title;
+        public string Url { get; } = url;
     }
 }

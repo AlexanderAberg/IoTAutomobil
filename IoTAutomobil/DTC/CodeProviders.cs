@@ -5,16 +5,10 @@ using System.Text.RegularExpressions;
 
 namespace IoTAutomobil.DTC
 {
-    internal sealed class CsvDtcProvider : IDtcProvider
+    internal sealed class CsvDtcProvider(string filePath, Random random) : IDtcProvider
     {
-        private readonly string[] _codes;
-        private readonly Random _random;
-
-        public CsvDtcProvider(string filePath, Random random)
-        {
-            _random = random;
-            _codes = Load(filePath);
-        }
+        private readonly string[] _codes = Load(filePath);
+        private readonly Random _random = random;
 
         private static string[] Load(string filePath)
         {
@@ -24,7 +18,7 @@ namespace IoTAutomobil.DTC
 
                 return [.. File.ReadLines(filePath)
                     .Select(l => l.Trim())
-                    .Where(l => !string.IsNullOrWhiteSpace(l) && !l.StartsWith("#"))
+                    .Where(l => !string.IsNullOrWhiteSpace(l) && !l.StartsWith('#'))
                     .Select(line =>
                     {
                         var match = Regex.Match(line, @"\b([PBCU]\d{4})\b", RegexOptions.IgnoreCase);
@@ -52,12 +46,10 @@ namespace IoTAutomobil.DTC
         }
     }
 
-    internal sealed class FallbackDtcProvider : IDtcProvider
+    internal sealed class FallbackDtcProvider(Random random) : IDtcProvider
     {
         private readonly string[] _codes = ["P0300", "P0420", "P0171", "P0455", "P0133"];
-        private readonly Random _random;
-
-        public FallbackDtcProvider(Random random) => _random = random;
+        private readonly Random _random = random;
 
         public bool TryGetRandom(out string code)
         {
