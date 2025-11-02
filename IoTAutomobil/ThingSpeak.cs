@@ -9,17 +9,11 @@ using System.Threading.Tasks;
 
 namespace IoTAutomobil
 {
-    internal class ThingSpeak
+    internal class ThingSpeak(string? apiKey = null)
     {
         private static readonly HttpClient s_http = new();
-        private readonly string _apiKey;
-        private readonly string? _channelId;
-
-        public ThingSpeak(string? apiKey = null)
-        {
-            _apiKey = apiKey ?? Environment.GetEnvironmentVariable("THINGSPEAK_API_KEY");
-            _channelId = Environment.GetEnvironmentVariable("THINGSPEAK_CHANNEL_ID");
-        }
+        private readonly string _apiKey = apiKey ?? Environment.GetEnvironmentVariable("THINGSPEAK_API_KEY") ?? string.Empty;
+        private readonly string? _channelId = Environment.GetEnvironmentVariable("THINGSPEAK_CHANNEL_ID");
 
         internal async Task SendDataAsync(SensorData sensorData)
         {
@@ -46,8 +40,10 @@ namespace IoTAutomobil
 
             if (hasGps)
             {
-                sb.Append("&field7=").Append(sensorData.Latitude.Value.ToString(CultureInfo.InvariantCulture));
-                sb.Append("&field8=").Append(sensorData.Longitude.Value.ToString(CultureInfo.InvariantCulture));
+                if (sensorData.Latitude.HasValue)
+                    sb.Append("&field7=").Append(sensorData.Latitude.Value.ToString(CultureInfo.InvariantCulture));
+                if (sensorData.Longitude.HasValue)
+                    sb.Append("&field8=").Append(sensorData.Longitude.Value.ToString(CultureInfo.InvariantCulture));
             }
 
             sb.Append("&status=").Append(Uri.EscapeDataString(hasDtc ? $"DTC: {sensorData.Dtc}" : "OK"));
